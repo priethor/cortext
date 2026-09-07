@@ -49,6 +49,15 @@ function isTransientNetworkError( err ) {
 	);
 }
 
+// electron-updater reads the running version's prerelease suffix as a release
+// channel, and branch builds are versioned <version>-<sha>. That names a channel
+// no Release carries, so every check ends in "No published versions on GitHub",
+// which reads as a broken Release rather than as a build that was never on the
+// update channel. Leave those builds to the notify-only checker.
+function isReleaseBuild() {
+	return /^\d+\.\d+\.\d+$/.test( app.getVersion() );
+}
+
 // Downloads from a mounted DMG or ~/Downloads cannot replace the running app.
 // Ask the user to move Cortext before starting the update flow.
 function notInApplicationsFolder() {
@@ -181,7 +190,7 @@ function initAutoUpdates( {
 		mainWindow = window ?? mainWindow;
 		return true;
 	}
-	if ( ! app.isPackaged ) {
+	if ( ! app.isPackaged || ! isReleaseBuild() ) {
 		return false;
 	}
 	try {
@@ -244,10 +253,15 @@ function scheduleUpdateCheck( options = {} ) {
 
 function checkForUpdatesInteractive() {
 	if ( ! autoUpdater ) {
+		const branchBuild = ! isReleaseBuild();
 		showMessage( {
 			type: 'info',
-			message: 'Use the installed app for updates',
-			detail: 'Run the installed Cortext app to check for updates.',
+			message: branchBuild
+				? 'This build does not receive updates'
+				: 'Use the installed app for updates',
+			detail: branchBuild
+				? `Cortext ${ app.getVersion() } was built from a branch. Install a release to get updates.`
+				: 'Run the installed Cortext app to check for updates.',
 			buttons: [ 'OK' ],
 		} );
 		return;
