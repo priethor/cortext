@@ -1029,6 +1029,7 @@ export default function RowProperties( {
 	rowId: providedRowId,
 } ) {
 	const {
+		saveRowField,
 		optionOverrides,
 		updateFieldOptions,
 		formatOverrides,
@@ -1179,6 +1180,13 @@ export default function RowProperties( {
 		},
 		[]
 	);
+	const persistFieldValue = useCallback(
+		( nextRowId, fieldId, value ) =>
+			saveRowField
+				? saveRowField( nextRowId, fieldId, value )
+				: saveRowDocumentField( nextRowId, fieldId, value ),
+		[ saveRowField ]
+	);
 
 	const flushQueuedFieldSave = useCallback(
 		async ( fieldId, { rethrow = false } = {} ) => {
@@ -1191,7 +1199,7 @@ export default function RowProperties( {
 			clearSaveTimer( fieldId );
 
 			try {
-				const updated = await saveRowDocumentField(
+				const updated = await persistFieldValue(
 					entry.rowId,
 					fieldId,
 					entry.value
@@ -1236,6 +1244,7 @@ export default function RowProperties( {
 			clearLocalFieldValue,
 			clearSaveTimer,
 			collectionId,
+			persistFieldValue,
 			refreshRows,
 		]
 	);
@@ -1288,7 +1297,7 @@ export default function RowProperties( {
 
 			for ( const [ fieldId, entry ] of entries ) {
 				try {
-					const updated = await saveRowDocumentField(
+					const updated = await persistFieldValue(
 						entry.rowId,
 						fieldId,
 						entry.value
@@ -1328,6 +1337,7 @@ export default function RowProperties( {
 			applyCommittedFieldValue,
 			clearLocalFieldValue,
 			collectionId,
+			persistFieldValue,
 			refreshRows,
 		]
 	);

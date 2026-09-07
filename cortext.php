@@ -49,6 +49,7 @@ register_activation_hook(
 		// same registration runs again on `init` during normal boot via
 		// `Plugin::boot()`.
 		( new \Cortext\PostType\Document() )->register_post_type();
+		( new \Cortext\PostType\Template() )->register_post_type();
 		( new \Cortext\Taxonomy\TraitTaxonomy() )->register_taxonomy();
 		( new \Cortext\FieldValues\FieldValueIndex() )->activate();
 		flush_rewrite_rules();

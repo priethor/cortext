@@ -1,15 +1,3 @@
-/**
- * Render and prop-contract tests for `src/components/sidebar/DocumentRow.js`.
- *
- * DocumentRow has two modes derived from the record's capabilities:
- *  - hierarchy (pages and collections without a trait term): real chevron,
- *    recursive children, three drop zones, add-child button.
- *  - leaf (rows — documents tagged with a trait term): chevron placeholder,
- *    no children, two drop zones, no add-child.
- *
- * The `documents` module is mocked so tests can inspect actions and feature
- * resolution without mounting the full sidebar provider stack each time.
- */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { DndContext } from '@dnd-kit/core';
 
@@ -271,6 +259,44 @@ describe( 'DocumentRow (hierarchical mode)', () => {
 		expect( props.onCreateChildCollection ).toHaveBeenCalledWith( 1 );
 	} );
 
+	it( 'creates a child document from a page template in the menu', () => {
+		const template = { id: 9, title: 'Brief' };
+		const { container, props } = renderRow( {
+			onCreateBlankChild: jest.fn(),
+			pageTemplates: [ template ],
+			onCreateChildFromTemplate: jest.fn(),
+		} );
+		fireEvent.click( container.querySelector( '.cortext-sidebar__menu' ) );
+		fireEvent.click(
+			screen.getByRole( 'menuitem', {
+				name: 'Add document from Brief',
+			} )
+		);
+		expect( props.onCreateChildFromTemplate ).toHaveBeenCalledWith(
+			1,
+			template
+		);
+	} );
+
+	it( 'hides template actions when the experiment is disabled', () => {
+		const { container } = renderRow( {
+			pageTemplates: [ { id: 9, title: 'Brief' } ],
+			onCreateChildFromTemplate: jest.fn(),
+		} );
+		fireEvent.click( container.querySelector( '.cortext-sidebar__menu' ) );
+
+		expect(
+			screen.queryByRole( 'menuitem', {
+				name: 'Add blank document',
+			} )
+		).toBeNull();
+		expect(
+			screen.queryByRole( 'menuitem', {
+				name: 'Add document from Brief',
+			} )
+		).toBeNull();
+	} );
+
 	it( 'does not show the child collection action for collections', () => {
 		const { container } = renderRow( { record: makeCollection() } );
 		fireEvent.click( container.querySelector( '.cortext-sidebar__menu' ) );
@@ -428,7 +454,6 @@ describe( 'DocumentRow (hierarchical mode)', () => {
 			childNodes: [ { page: child, children: [] } ],
 			expandedIds: new Set( [ 1 ] ),
 		} );
-		// Two rows total: root + child.
 		expect(
 			container.querySelectorAll( '.cortext-sidebar__row' )
 		).toHaveLength( 2 );
@@ -518,8 +543,6 @@ describe( 'DocumentRow (leaf mode)', () => {
 	} );
 
 	it( 'does not render child rows even when childNodes are passed', () => {
-		// Leaves never render child branches. Ignore passed nodes so stale tree
-		// data cannot show rows under a collection.
 		const stray = makeRow( {
 			id: 8,
 			title: { rendered: 'Stray', raw: 'Stray' },
